@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field
 import uvicorn
 
 # Import quantum engine and persistence
-from quantum_engine import QuantumConsciousnessField
+from quantum_engine import QuantumConsciousnessField, LearningConfig
 from quantum_persistence import session_manager, QuantumStateSerializer
 
 # Database connection (will be imported from Node.js side)
@@ -236,6 +236,7 @@ if __name__ == "__main__":
     print(f"🌌 Starting Quantum Consciousness API on port {port}")
     print(f"📡 Health check: http://localhost:{port}/health")
     print(f"📚 API docs: http://localhost:{port}/docs")
+    LearningConfig.print_config()
     
     uvicorn.run(
         app,

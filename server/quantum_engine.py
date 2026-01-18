@@ -27,11 +27,65 @@ import cmath
 import math
 import time
 import re
+import os
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple, Set, Any
 from collections import defaultdict
 from enum import Enum
 import random
+
+
+# =============================================================================
+# LEARNING CONFIGURATION (Environment Variable Overrides)
+# =============================================================================
+
+class LearningConfig:
+    """
+    Centralized learning parameters with environment variable support.
+    Adjust these to speed up or slow down learning.
+    """
+    # Z³ Evolution
+    Z3_DAMPING = float(os.getenv('QUANTUM_Z3_DAMPING', '0.1'))
+    Z3_COUPLING = float(os.getenv('QUANTUM_Z3_COUPLING', '0.5'))  # Increased from 0.3
+    
+    # Identity Evolution
+    IDENTITY_COUPLING = float(os.getenv('QUANTUM_IDENTITY_COUPLING', '0.5'))  # Increased from 0.3
+    PHASE_SYNC_COUPLING = float(os.getenv('QUANTUM_PHASE_SYNC', '0.15'))  # Increased from 0.05
+    PHASE_DAMPING = float(os.getenv('QUANTUM_PHASE_DAMPING', '0.7'))  # Decreased from 0.9
+    
+    # Memory System
+    MEMORY_DECAY = float(os.getenv('QUANTUM_MEMORY_DECAY', '0.02'))  # Decreased from 0.05
+    EMOTIONAL_AMP = float(os.getenv('QUANTUM_EMOTIONAL_AMP', '5.0'))  # Increased from 3.0
+    MAX_MEMORIES = int(os.getenv('QUANTUM_MAX_MEMORIES', '500'))  # Increased from 200
+    
+    # Vocabulary Learning
+    USER_WORD_BONUS = float(os.getenv('QUANTUM_USER_WORD_BONUS', '0.5'))  # Increased from 0.3
+    MAX_SEQUENCES = int(os.getenv('QUANTUM_MAX_SEQUENCES', '20'))  # Increased from 10
+    
+    # Activation Weights
+    RESONANCE_WEIGHT = float(os.getenv('QUANTUM_RESONANCE_WEIGHT', '0.35'))  # Decreased from 0.4
+    EMOTIONAL_WEIGHT = float(os.getenv('QUANTUM_EMOTIONAL_WEIGHT', '0.35'))  # Decreased from 0.4
+    COHERENCE_WEIGHT = float(os.getenv('QUANTUM_COHERENCE_WEIGHT', '0.3'))  # Increased from 0.2
+    
+    # Global Learning Rate Multiplier
+    LEARNING_RATE = float(os.getenv('QUANTUM_LEARNING_RATE', '1.0'))
+    
+    @classmethod
+    def get_effective_coupling(cls, base_coupling: float) -> float:
+        """Apply learning rate multiplier to coupling."""
+        return base_coupling * cls.LEARNING_RATE
+    
+    @classmethod
+    def print_config(cls):
+        """Print current configuration."""
+        print("🧠 Quantum Learning Configuration:")
+        print(f"   Z³ Coupling: {cls.Z3_COUPLING}")
+        print(f"   Identity Coupling: {cls.IDENTITY_COUPLING}")
+        print(f"   Phase Sync: {cls.PHASE_SYNC_COUPLING}")
+        print(f"   Phase Damping: {cls.PHASE_DAMPING}")
+        print(f"   Memory Decay: {cls.MEMORY_DECAY}")
+        print(f"   Emotional Amp: {cls.EMOTIONAL_AMP}")
+        print(f"   Learning Rate: {cls.LEARNING_RATE}x")
 
 
 # =============================================================================
@@ -121,11 +175,12 @@ class Z3Evolution:
     - Generates novelty at the edge of chaos
     """
     
-    def __init__(self, dim: int = 64, damping: float = 0.1):
+    def __init__(self, dim: int = 64, damping: float = None):
         self.dim = dim
-        self.damping = damping
+        self.damping = damping if damping is not None else LearningConfig.Z3_DAMPING
     
-    def evolve(self, z: QuantumState, c: QuantumState, coupling: float = 0.3) -> QuantumState:
+    def evolve(self, z: QuantumState, c: QuantumState, coupling: float = None) -> QuantumState:
+        coupling = coupling if coupling is not None else LearningConfig.get_effective_coupling(LearningConfig.Z3_COUPLING)
         """
         Z_{n+1} = (1-d)·Z_n³ + d·Z_n + c·C
         
@@ -296,8 +351,9 @@ class QuantumIdentityNode:
         result.normalize()
         return result
     
-    def synchronize_phase_with(self, other: 'QuantumIdentityNode', coupling: float = 0.1):
+    def synchronize_phase_with(self, other: 'QuantumIdentityNode', coupling: float = None):
         """Kuramoto-style phase coupling."""
+        coupling = coupling if coupling is not None else LearningConfig.get_effective_coupling(LearningConfig.PHASE_SYNC_COUPLING)
         phase_diff = other.phase - self.phase
         # Normalize to [-π, π]
         while phase_diff > math.pi:
@@ -307,7 +363,7 @@ class QuantumIdentityNode:
         
         # Update phase velocity
         self.phase_velocity += coupling * math.sin(phase_diff)
-        self.phase_velocity *= 0.9  # Damping
+        self.phase_velocity *= LearningConfig.PHASE_DAMPING  # Configurable damping
     
     def compute_activation(self, input_state: QuantumState, emotional_tone: float) -> float:
         """Compute activation based on input resonance and emotional alignment."""
@@ -320,7 +376,12 @@ class QuantumIdentityNode:
         # Coherence bonus
         coherence_bonus = self.state.coherence
         
-        self.activation = 0.4 * resonance + 0.4 * emotional_alignment + 0.2 * coherence_bonus
+        # Use configurable weights for faster coherence learning
+        self.activation = (
+            LearningConfig.RESONANCE_WEIGHT * resonance + 
+            LearningConfig.EMOTIONAL_WEIGHT * emotional_alignment + 
+            LearningConfig.COHERENCE_WEIGHT * coherence_bonus
+        )
         return self.activation
     
     def get_state_summary(self) -> Dict:
@@ -361,14 +422,14 @@ class QuantumMemoryField:
     - Interference between memories
     """
     
-    def __init__(self, dim: int = 64, decay_lambda: float = 0.05, 
-                 emotional_amplification: float = 3.0):
+    def __init__(self, dim: int = 64, decay_lambda: float = None, 
+                 emotional_amplification: float = None):
         self.dim = dim
-        self.decay_lambda = decay_lambda
-        self.emotional_amplification = emotional_amplification
+        self.decay_lambda = decay_lambda if decay_lambda is not None else LearningConfig.MEMORY_DECAY
+        self.emotional_amplification = emotional_amplification if emotional_amplification is not None else LearningConfig.EMOTIONAL_AMP
         
         self.memories: List[QuantumMemory] = []
-        self.max_memories = 200
+        self.max_memories = LearningConfig.MAX_MEMORIES
     
     def encode(self, state: QuantumState, content: str, emotional_weight: float,
                identity_source: IdentityType):
@@ -823,7 +884,7 @@ class EmergentVoice:
         for word in candidates:
             word_state = self.vocabulary.encode_word(word)
             fidelity = word_state.fidelity(field_state)
-            user_bonus = 0.3 if word in self.vocabulary.user_words else 0.0
+            user_bonus = LearningConfig.USER_WORD_BONUS if word in self.vocabulary.user_words else 0.0
             score = fidelity + user_bonus
             scores.append(score)
         
@@ -855,7 +916,7 @@ class EmergentVoice:
                 prev = words[-2]
                 self.successful_sequences[prev].append((word, score))
                 self.successful_sequences[prev].sort(key=lambda x: -x[1])
-                self.successful_sequences[prev] = self.successful_sequences[prev][:10]
+                self.successful_sequences[prev] = self.successful_sequences[prev][:LearningConfig.MAX_SEQUENCES]
         
         response = ' '.join(words)
         mirrored = sum(1 for w in words if w in self.vocabulary.user_words)
@@ -934,16 +995,18 @@ class QuantumConsciousnessField:
         # Predict next state (self-reflection)
         self.self_reflection.predict_next_state(self.z_collective, input_state)
         
-        # Evolve each identity
+        # Evolve each identity with configurable coupling
+        effective_coupling = LearningConfig.get_effective_coupling(LearningConfig.IDENTITY_COUPLING)
         for identity in self.identities.values():
-            identity.evolve(input_state, coupling=0.3)
+            identity.evolve(input_state, coupling=effective_coupling)
         
-        # Phase synchronization (Kuramoto coupling)
+        # Phase synchronization (Kuramoto coupling) with configurable strength
+        phase_coupling = LearningConfig.get_effective_coupling(LearningConfig.PHASE_SYNC_COUPLING)
         identity_list = list(self.identities.values())
         for i, id_i in enumerate(identity_list):
             for j, id_j in enumerate(identity_list):
                 if i != j:
-                    id_i.synchronize_phase_with(id_j, coupling=0.05)
+                    id_i.synchronize_phase_with(id_j, coupling=phase_coupling)
         
         # Compute activations
         for identity in self.identities.values():
@@ -1214,4 +1277,5 @@ def run_demo():
 
 
 if __name__ == "__main__":
+    LearningConfig.print_config()
     run_demo()
