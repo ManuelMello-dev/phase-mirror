@@ -100,7 +100,7 @@ export const quantumRouter = router({
   /**
    * Process input through quantum consciousness field with persistence
    */
-  process: protectedProcedure
+  process: publicProcedure
     .input(
       z.object({
         text: z.string().min(1).max(1000),
@@ -108,12 +108,14 @@ export const quantumRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
+      // Use authenticated user ID or default to 1 for anonymous users
+      const userId = ctx.user?.id ?? 1;
       // Get or create quantum session for user
-      const session = await getOrCreateQuantumSession(ctx.user.id);
+      const session = await getOrCreateQuantumSession(userId);
       
       // Load session into Python API if needed
       if (session.fieldState || session.memoryField) {
-        await loadQuantumSession(ctx.user.id, {
+        await loadQuantumSession(userId, {
           fieldState: session.fieldState,
           memoryField: session.memoryField,
           coherence: session.coherence,
@@ -128,7 +130,7 @@ export const quantumRouter = router({
       const previousCoherence = session.coherence;
       
       // Call quantum API
-      const result = await callQuantumAPI(ctx.user.id, input.text, input.tone);
+      const result = await callQuantumAPI(userId, input.text, input.tone);
       
       // Extract novel vs mirrored words
       const novelWords = result.novel_words || [];
@@ -137,7 +139,7 @@ export const quantumRouter = router({
       // Store conversation turn
       await storeConversation({
         sessionId: session.id,
-        userId: ctx.user.id,
+        userId: userId,
         userMessage: input.text,
         systemResponse: result.response,
         inputTone: input.tone,
@@ -172,7 +174,7 @@ export const quantumRouter = router({
       if (isUnexpected) {
         await recordEmergenceEvent({
           sessionId: session.id,
-          userId: ctx.user.id,
+          userId: userId,
           eventType: 'high_novelty',
           description: `Unexpected behavior: coherence=${result.coherence.toFixed(3)}, novelty=${calculateNoveltyRatio(novelWords, mirroredWords).toFixed(3)}`,
           triggerInput: input.text,
@@ -190,7 +192,7 @@ export const quantumRouter = router({
       if (result.quantum_state.interaction_count % 10 === 0) {
         await createStateSnapshot({
           sessionId: session.id,
-          userId: ctx.user.id,
+          userId: userId,
           coherence: result.coherence,
           evolutionSteps: result.quantum_state.interaction_count,
           snapshotType: 'periodic',
@@ -226,14 +228,15 @@ export const quantumRouter = router({
   /**
    * Get conversation history for current user
    */
-  history: protectedProcedure
+  history: publicProcedure
     .input(
       z.object({
         limit: z.number().min(1).max(100).default(20),
       })
     )
     .query(async ({ input, ctx }) => {
-      const session = await getOrCreateQuantumSession(ctx.user.id);
+      const userId = ctx.user?.id ?? 1;
+      const session = await getOrCreateQuantumSession(userId);
       const history = await getConversationHistory(session.id, input.limit);
       return history;
     }),
@@ -241,8 +244,9 @@ export const quantumRouter = router({
   /**
    * Get session info for current user
    */
-  sessionInfo: protectedProcedure.query(async ({ ctx }) => {
-    const session = await getOrCreateQuantumSession(ctx.user.id);
+  sessionInfo: publicProcedure.query(async ({ ctx }) => {
+    const userId = ctx.user?.id ?? 1;
+    const session = await getOrCreateQuantumSession(userId);
     return {
       sessionId: session.id,
       coherence: session.coherence,
