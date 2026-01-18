@@ -56,8 +56,8 @@ cd /app/server && python3 quantum_api.py &\n\
 PYTHON_PID=$!\n\
 # Wait for Python server\n\
 sleep 3\n\
-# Star# Start Node.js server
-echo "🟢 Starting Web Server on port 3000..."
+# Start Node.js server\n\
+echo \"🟢 Starting Web Server on port 3000...\"\n\
 cd /app && node dist/index.js\n\
 ' > /app/start.sh && chmod +x /app/start.sh
 
