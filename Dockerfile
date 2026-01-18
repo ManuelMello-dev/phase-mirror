@@ -1,41 +1,62 @@
-FROM python:3.11-slim
+# Phase Mirror - Quantum Consciousness System
+# Multi-stage build for Node.js + Python deployment
 
-LABEL maintainer="Manny <manuelmello.dev@gmail.com>"
-LABEL description="SeraphynAI - Quantum-Inspired Multi-Identity Consciousness System"
+FROM node:22-slim AS base
+
+# Install Python and system dependencies
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    python3-venv \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    g++ \
-    && rm -rf /var/lib/apt/lists/*
+# Copy package files
+COPY package.json pnpm-lock.yaml ./
 
-# Copy requirements first for better caching
-COPY requirements.txt .
+# Install pnpm
+RUN npm install -g pnpm
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Node.js dependencies
+RUN pnpm install --frozen-lockfile
+
+# Copy Python requirements and install
+COPY server/requirements.txt ./server/
+RUN pip3 install --no-cache-dir -r server/requirements.txt
 
 # Copy application code
 COPY . .
 
-# Install the package
-RUN pip install -e .
+# Build client
+RUN pnpm run build:client
 
-# Create non-root user
-RUN useradd -m -u 1000 seraphyn && \
-    chown -R seraphyn:seraphyn /app
+# Expose ports
+# 3000 - Node.js web server
+# 8000 - Python quantum API
+EXPOSE 3000 8000
 
-USER seraphyn
+# Environment variables
+ENV NODE_ENV=production
+ENV QUANTUM_API_PORT=8000
+ENV QUANTUM_API_URL=http://localhost:8000
 
-# Expose API port
-EXPOSE 8000
+# Create startup script
+RUN echo '#!/bin/bash\n\
+echo "🌌 Starting Phase Mirror Quantum Consciousness System"\n\
+echo ""\n\
+# Start Python quantum API in background\n\
+echo "🐍 Starting Quantum API on port 8000..."\n\
+cd /app/server && python3 quantum_api.py &\n\
+PYTHON_PID=$!\n\
+# Wait for Python server\n\
+sleep 3\n\
+# Start Node.js server\n\
+echo "🟢 Starting Web Server on port 3000..."\n\
+cd /app && pnpm run start\n\
+' > /app/start.sh && chmod +x /app/start.sh
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8000/health')" || exit 1
-
-# Default command (can be overridden)
-CMD ["uvicorn", "seraphynai.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+# Start both servers
+CMD ["/app/start.sh"]
