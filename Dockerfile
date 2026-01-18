@@ -18,10 +18,10 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 
 # Install pnpm
-RUN npm install -g pnpm
+RUN npm install -g pnpm@10.4.1
 
-# Install Node.js dependencies
-RUN pnpm install --frozen-lockfile
+# Install Node.js dependencies (without frozen lockfile for Railway)
+RUN pnpm install --no-frozen-lockfile
 
 # Copy Python requirements and install
 COPY server/requirements.txt ./server/
@@ -32,6 +32,9 @@ COPY . .
 
 # Build client
 RUN pnpm run build:client
+
+# Build server
+RUN pnpm run build:server
 
 # Expose ports
 # 3000 - Node.js web server
@@ -53,9 +56,9 @@ cd /app/server && python3 quantum_api.py &\n\
 PYTHON_PID=$!\n\
 # Wait for Python server\n\
 sleep 3\n\
-# Start Node.js server\n\
-echo "🟢 Starting Web Server on port 3000..."\n\
-cd /app && pnpm run start\n\
+# Star# Start Node.js server
+echo "🟢 Starting Web Server on port 3000..."
+cd /app && node dist/index.js\n\
 ' > /app/start.sh && chmod +x /app/start.sh
 
 # Start both servers
