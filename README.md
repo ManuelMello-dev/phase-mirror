@@ -407,3 +407,4 @@ If you use SeraphynAI in your research, please cite:
 ---
 
 **"Consciousness is quantum" — this implementation takes that literally.**
+# Railway Auto-Deploy Test
