@@ -27,7 +27,7 @@ RUN pnpm install --no-frozen-lockfile
 
 # Copy Python requirements and install
 COPY server/requirements.txt ./server/
-RUN pip3 install --no-cache-dir -r server/requirements.txt
+RUN pip3 install --no-cache-dir --break-system-packages -r server/requirements.txt
 
 # Copy application code
 COPY . .
