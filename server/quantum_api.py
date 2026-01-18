@@ -42,12 +42,19 @@ class SessionLoadRequest(BaseModel):
     user_id: int
     session_data: Optional[Dict[str, Any]] = None
 
+class IdentityState(BaseModel):
+    name: str
+    activation: float
+    phase: float
+    coherence: float
+    dominant_phase: float
+
 class QuantumResponse(BaseModel):
     response: str
     active_identity: str
     coherence: float
     metrics: Dict[str, float]
-    identity_states: Dict[str, Dict[str, float]]
+    identity_states: Dict[str, IdentityState]
     quantum_state: Dict[str, int]
     novel_words: list[str] = []
     mirrored_words: list[str] = []
