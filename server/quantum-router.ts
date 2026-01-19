@@ -149,18 +149,33 @@ export const quantumRouter = router({
         mirroredWords,
       });
       
-      // Update quantum session state
-      // Convert identity_states to simple activation map
+      // Save session state from Python API to get full fieldState and memoryField
+      let fullState: any = {};
+      try {
+        const saveResponse = await fetch(`${QUANTUM_API_URL}/session/save?user_id=${userId}`, {
+          method: "POST",
+        });
+        if (saveResponse.ok) {
+          fullState = await saveResponse.json();
+        }
+      } catch (error) {
+        console.error("[Quantum API] Failed to save session state:", error);
+      }
+
+      // Update quantum session state in database
       const identityActivations: Record<string, number> = {};
       for (const [key, value] of Object.entries(result.identity_states)) {
         identityActivations[key] = value.activation;
       }
       
       await updateQuantumSession(session.id, {
+        fieldState: fullState.fieldState || session.fieldState,
+        memoryField: fullState.memoryField || session.memoryField,
         coherence: result.coherence,
         activeIdentity: result.active_identity,
         identityActivations,
         evolutionSteps: result.quantum_state.interaction_count,
+        currentAnchor: fullState.currentAnchor || session.currentAnchor,
       });
       
       // Detect and record emergence events
