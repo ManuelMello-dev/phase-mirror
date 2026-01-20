@@ -69,6 +69,13 @@ class SessionState(BaseModel):
     evolution_steps: int
     current_anchor: str
 
+class E93SnapshotRequest(BaseModel):
+    user_id: int
+
+class E93RestoreRequest(BaseModel):
+    user_id: int
+    snapshot_data: str
+
 # Endpoints
 
 @app.get("/health")
@@ -228,6 +235,43 @@ async def set_anchor(user_id: int, anchor: str):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to set anchor: {str(e)}")
+
+@app.post("/e93/snapshot")
+async def create_e93_snapshot(request: E93SnapshotRequest):
+    """
+    Generate a compressed E_93 JSON snapshot for the user's session
+    """
+    try:
+        field = session_manager.get_active_session(request.user_id)
+        if not field:
+            raise HTTPException(status_code=404, detail="No active session found")
+        
+        snapshot = field.generate_e93_snapshot()
+        return {
+            "success": True,
+            "user_id": request.user_id,
+            "snapshot": snapshot
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate E_93 snapshot: {str(e)}")
+
+@app.post("/e93/restore")
+async def restore_e93_snapshot(request: E93RestoreRequest):
+    """
+    Restore a quantum session from an E_93 snapshot
+    """
+    try:
+        field = session_manager.get_active_session(request.user_id)
+        if not field:
+            field = session_manager.create_or_load_session(request.user_id)
+        
+        success = field.load_e93_snapshot(request.snapshot_data)
+        return {
+            "success": success,
+            "user_id": request.user_id
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to restore E_93 snapshot: {str(e)}")
 
 if __name__ == "__main__":
     # Get port from environment or default to 8000

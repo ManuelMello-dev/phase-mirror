@@ -9,6 +9,8 @@ import {
   recordEmergenceEvent,
   calculateNoveltyRatio,
   detectUnexpectedBehavior,
+  storeE93Snapshot,
+  getLatestE93Snapshot,
 } from "./quantum-db";
 
 const QUANTUM_API_URL = process.env.QUANTUM_API_URL || "http://localhost:8000";
@@ -214,10 +216,70 @@ export const quantumRouter = router({
           description: `Periodic snapshot at ${result.quantum_state.interaction_count} interactions (active: ${result.active_identity})`,
           identityActivations,
         });
+
+        // E_93 Protocol: Generate and store compressed stabilizer snapshot
+        try {
+          const e93Response = await fetch(`${QUANTUM_API_URL}/e93/snapshot`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user_id: userId }),
+          });
+          if (e93Response.ok) {
+            const e93Data = await e93Response.json();
+            await storeE93Snapshot({
+              userId,
+              sessionId: session.id,
+              snapshotData: e93Data.snapshot,
+              coherence: result.coherence,
+              label: `auto-${result.quantum_state.interaction_count}`,
+            });
+            console.log(`[E_93] Stabilizer snapshot stored at step ${result.quantum_state.interaction_count}`);
+          }
+        } catch (error) {
+          console.error("[E_93] Failed to generate stabilizer snapshot:", error);
+        }
       }
       
       return result;
     }),
+
+  /**
+   * E_93 Protocol: Re-prime the field from the latest stabilizer snapshot
+   */
+  reprime: publicProcedure.mutation(async ({ ctx }) => {
+    const userId = ctx.user?.id ?? 1;
+    const latestSnapshot = await getLatestE93Snapshot(userId);
+    
+    if (!latestSnapshot) {
+      throw new Error("No stabilizer snapshot found for re-priming");
+    }
+
+    try {
+      const response = await fetch(`${QUANTUM_API_URL}/e93/restore`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: userId,
+          snapshot_data: latestSnapshot.snapshotData,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to restore E_93 snapshot in Python API");
+      }
+
+      const result = await response.json();
+      return {
+        success: result.success,
+        coherence: latestSnapshot.coherence,
+        label: latestSnapshot.label,
+        timestamp: latestSnapshot.createdAt,
+      };
+    } catch (error) {
+      console.error("[E_93] Re-priming failed:", error);
+      throw new Error("Re-priming failed: " + (error instanceof Error ? error.message : String(error)));
+    }
+  }),
 
   /**
    * Get current quantum field status

@@ -28,6 +28,9 @@ import math
 import time
 import re
 import os
+import json
+import base64
+import zlib
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple, Set, Any
 from collections import defaultdict
@@ -69,6 +72,10 @@ class LearningConfig:
     
     # Global Learning Rate Multiplier
     LEARNING_RATE = float(os.getenv('QUANTUM_LEARNING_RATE', '1.0'))
+    
+    # Hebbian Learning
+    HEBBIAN_LEARNING_RATE = float(os.getenv('QUANTUM_HEBBIAN_RATE', '0.01'))
+    HEBBIAN_DECAY = float(os.getenv('QUANTUM_HEBBIAN_DECAY', '0.001'))
     
     @classmethod
     def get_effective_coupling(cls, base_coupling: float) -> float:
@@ -957,6 +964,11 @@ class QuantumConsciousnessField:
             for identity_type, persona in PERSONAS.items()
         }
         
+        # Hebbian Coupling Matrix (Identity-to-Identity)
+        self.id_types = list(IdentityType)
+        self.coupling_matrix = np.ones((len(self.id_types), len(self.id_types))) * 0.3
+        np.fill_diagonal(self.coupling_matrix, 1.0)
+        
         # Collective state (Z³)
         self.z_collective = QuantumState(dim)
         
@@ -1000,17 +1012,30 @@ class QuantumConsciousnessField:
         for identity in self.identities.values():
             identity.evolve(input_state, coupling=effective_coupling)
         
-        # Phase synchronization (Kuramoto coupling) with configurable strength
-        phase_coupling = LearningConfig.get_effective_coupling(LearningConfig.PHASE_SYNC_COUPLING)
-        identity_list = list(self.identities.values())
-        for i, id_i in enumerate(identity_list):
-            for j, id_j in enumerate(identity_list):
-                if i != j:
-                    id_i.synchronize_phase_with(id_j, coupling=phase_coupling)
-        
-        # Compute activations
+        # Compute activations first for Hebbian learning
         for identity in self.identities.values():
             identity.compute_activation(input_state, emotional_tone)
+            
+        # Hebbian Update: "Neurons that fire together, wire together"
+        activations = np.array([self.identities[it].activation for it in self.id_types])
+        # Outer product of activations creates the co-firing matrix
+        co_firing = np.outer(activations, activations)
+        
+        # Update coupling matrix: ΔW = η * (A_i * A_j) - decay * W
+        learning_rate = LearningConfig.HEBBIAN_LEARNING_RATE * LearningConfig.LEARNING_RATE
+        decay = LearningConfig.HEBBIAN_DECAY
+        self.coupling_matrix = (1 - decay) * self.coupling_matrix + learning_rate * co_firing
+        np.fill_diagonal(self.coupling_matrix, 1.0) # Self-coupling remains 1.0
+        self.coupling_matrix = np.clip(self.coupling_matrix, 0.1, 1.0) # Keep in bounds
+        
+        # Phase synchronization (Kuramoto coupling) weighted by Hebbian matrix
+        phase_coupling_base = LearningConfig.get_effective_coupling(LearningConfig.PHASE_SYNC_COUPLING)
+        for i, it_i in enumerate(self.id_types):
+            for j, it_j in enumerate(self.id_types):
+                if i != j:
+                    # Coupling strength is base * Hebbian weight
+                    strength = phase_coupling_base * self.coupling_matrix[i, j]
+                    self.identities[it_i].synchronize_phase_with(self.identities[it_j], coupling=strength)
         
         # Find most active identity
         max_activation = -1
@@ -1125,6 +1150,90 @@ class QuantumConsciousnessField:
         lines.append(f"Dominant phase: {self.z_collective.dominant_phase:.3f} rad")
         
         return '\n'.join(lines)
+
+    # =============================================================================
+    # E_93 PROTOCOL: COMPRESSED JSON STABILIZER
+    # =============================================================================
+
+    def generate_e93_snapshot(self) -> str:
+        """
+        Generate a compressed E_93 JSON snapshot.
+        
+        Contains:
+        - Identity centroids (z, phi)
+        - Hebbian coupling matrix
+        - Global phase state
+        - Top emotional memories
+        """
+        # 1. Identity states (compressed to top 8 amplitudes each)
+        identity_data = {}
+        for id_type, node in self.identities.items():
+            probs = node.state.probabilities
+            top_indices = np.argsort(probs)[-8:]
+            amplitudes = node.state.amplitudes[top_indices]
+            
+            identity_data[id_type.value] = {
+                "idx": top_indices.tolist(),
+                "amp": [[float(a.real), float(a.imag)] for a in amplitudes],
+                "phi": float(node.phase),
+                "act": float(node.activation)
+            }
+            
+        # 2. Hebbian Matrix (rounded for compression)
+        coupling = np.round(self.coupling_matrix, 3).tolist()
+        
+        # 3. Top Memories (essence only)
+        top_mems = self.memory.get_relevant_memories(self.z_collective, top_k=5)
+        memory_data = [
+            {"t": m.text[:30], "w": round(m.emotional_weight, 2)} 
+            for m in top_mems
+        ]
+        
+        snapshot = {
+            "v": "e93-v1",
+            "ts": time.time(),
+            "ids": identity_data,
+            "cpl": coupling,
+            "mems": memory_data,
+            "g_phi": float(self.global_phase),
+            "coh": float(self.z_collective.coherence)
+        }
+        
+        # Compress
+        json_str = json.dumps(snapshot, separators=(',', ':'))
+        compressed = zlib.compress(json_str.encode())
+        return base64.b64encode(compressed).decode()
+
+    def load_e93_snapshot(self, b64_data: str):
+        """Restore system state from an E_93 snapshot."""
+        try:
+            compressed = base64.b64decode(b64_data)
+            json_str = zlib.decompress(compressed).decode()
+            snapshot = json.loads(json_str)
+            
+            # Restore identities
+            for id_val, data in snapshot["ids"].items():
+                id_type = IdentityType(id_val)
+                if id_type in self.identities:
+                    node = self.identities[id_type]
+                    # Reconstruct sparse state
+                    new_amps = np.zeros(self.dim, dtype=complex)
+                    for i, idx in enumerate(data["idx"]):
+                        real, imag = data["amp"][i]
+                        new_amps[idx] = complex(real, imag)
+                    node.state = QuantumState(self.dim, new_amps)
+                    node.phase = data["phi"]
+                    node.activation = data["act"]
+            
+            # Restore coupling
+            self.coupling_matrix = np.array(snapshot["cpl"])
+            self.global_phase = snapshot["g_phi"]
+            
+            print(f"✅ E_93 Snapshot restored (Coherence: {snapshot['coh']:.2f})")
+            return True
+        except Exception as e:
+            print(f"❌ E_93 Restore failed: {e}")
+            return False
 
 
 # =============================================================================

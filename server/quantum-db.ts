@@ -13,6 +13,9 @@ import {
   type InsertStateSnapshot,
   type EmergenceEvent,
   type InsertEmergenceEvent,
+  e93Snapshots,
+  type E93Snapshot,
+  type InsertE93Snapshot,
 } from "../drizzle/schema";
 
 /**
@@ -226,4 +229,37 @@ export function detectUnexpectedBehavior(
   }
 
   return false;
+}
+
+/**
+ * Store E_93 compressed snapshot
+ */
+export async function storeE93Snapshot(snapshot: InsertE93Snapshot): Promise<number> {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  await db.insert(e93Snapshots).values(snapshot);
+  const inserted = await db.select().from(e93Snapshots).where(eq(e93Snapshots.sessionId, snapshot.sessionId)).orderBy(desc(e93Snapshots.id)).limit(1);
+  return inserted[0]?.id || 0;
+}
+
+/**
+ * Get latest E_93 snapshot for a user
+ */
+export async function getLatestE93Snapshot(userId: number): Promise<E93Snapshot | null> {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  const results = await db
+    .select()
+    .from(e93Snapshots)
+    .where(eq(e93Snapshots.userId, userId))
+    .orderBy(desc(e93Snapshots.createdAt))
+    .limit(1);
+
+  return results[0] || null;
 }

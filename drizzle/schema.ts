@@ -149,3 +149,23 @@ export const emergenceEvents = mysqlTable("emergence_events", {
 
 export type EmergenceEvent = typeof emergenceEvents.$inferSelect;
 export type InsertEmergenceEvent = typeof emergenceEvents.$inferInsert;
+
+/**
+ * E_93 Compressed JSON Snapshots
+ * Acts as the context stabilizer and drift anchor
+ */
+export const e93Snapshots = mysqlTable("e93_snapshots", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  sessionId: int("sessionId").notNull(),
+  /** Compressed B64 JSON data */
+  snapshotData: text("snapshotData").notNull(),
+  /** Coherence level at snapshot time */
+  coherence: float("coherence").notNull(),
+  /** Label for the anchor (e.g., 'genesis', 'trained') */
+  label: varchar("label", { length: 64 }).notNull().default('auto'),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type E93Snapshot = typeof e93Snapshots.$inferSelect;
+export type InsertE93Snapshot = typeof e93Snapshots.$inferInsert;
