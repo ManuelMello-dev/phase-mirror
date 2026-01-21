@@ -169,3 +169,21 @@ export const e93Snapshots = mysqlTable("e93_snapshots", {
 
 export type E93Snapshot = typeof e93Snapshots.$inferSelect;
 export type InsertE93Snapshot = typeof e93Snapshots.$inferInsert;
+
+/**
+ * Narrative Memory - Dream Logs
+ * Synthesized daily experiences into recursive narratives
+ */
+export const dreamLogs = mysqlTable("dream_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  sessionId: int("sessionId").notNull(),
+  /** Synthesized narrative content */
+  content: text("content").notNull(),
+  /** Coherence level at time of synthesis */
+  coherence: float("coherence").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type DreamLog = typeof dreamLogs.$inferSelect;
+export type InsertDreamLog = typeof dreamLogs.$inferInsert;

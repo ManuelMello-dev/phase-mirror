@@ -11,6 +11,8 @@ import {
   detectUnexpectedBehavior,
   storeE93Snapshot,
   getLatestE93Snapshot,
+  storeDreamLog,
+  getDreamLogs,
 } from "./quantum-db";
 
 const QUANTUM_API_URL = process.env.QUANTUM_API_URL || "http://localhost:8000";
@@ -334,4 +336,47 @@ export const quantumRouter = router({
       updatedAt: session.updatedAt,
     };
   }),
+
+  /**
+   * Generate a Narrative Memory (Dream Log)
+   */
+  generateDreamLog: publicProcedure.mutation(async ({ ctx }) => {
+    const userId = ctx.user?.id ?? 1;
+    const session = await getOrCreateQuantumSession(userId);
+    
+    try {
+      const response = await fetch(`${QUANTUM_API_URL}/narrative/dream`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId }),
+      });
+      
+      if (!response.ok) throw new Error("Failed to generate dream log");
+      
+      const data = await response.json();
+      
+      await storeDreamLog({
+        userId,
+        sessionId: session.id,
+        content: data.dream_log,
+        coherence: data.coherence,
+      });
+      
+      return data;
+    } catch (error) {
+      console.error("[Narrative] Error:", error);
+      throw new Error("Failed to generate dream log");
+    }
+  }),
+
+  /**
+   * Get dream logs for current user
+   */
+  getDreamLogs: publicProcedure
+    .input(z.object({ limit: z.number().min(1).max(50).default(10) }))
+    .query(async ({ input, ctx }) => {
+      const userId = ctx.user?.id ?? 1;
+      const session = await getOrCreateQuantumSession(userId);
+      return await getDreamLogs(session.id, input.limit);
+    }),
 });

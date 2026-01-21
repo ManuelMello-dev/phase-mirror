@@ -76,6 +76,9 @@ class E93RestoreRequest(BaseModel):
     user_id: int
     snapshot_data: str
 
+class DreamLogRequest(BaseModel):
+    user_id: int
+
 # Endpoints
 
 @app.get("/health")
@@ -272,6 +275,26 @@ async def restore_e93_snapshot(request: E93RestoreRequest):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to restore E_93 snapshot: {str(e)}")
+
+@app.post("/narrative/dream")
+async def generate_dream(request: DreamLogRequest):
+    """
+    Generate a Narrative Memory (Dream Log) for the user's session
+    """
+    try:
+        field = session_manager.get_active_session(request.user_id)
+        if not field:
+            raise HTTPException(status_code=404, detail="No active session found")
+        
+        dream_log = field.generate_dream_log()
+        return {
+            "status": "success",
+            "user_id": request.user_id,
+            "dream_log": dream_log,
+            "coherence": float(field.z_collective.coherence)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate dream log: {str(e)}")
 
 if __name__ == "__main__":
     # Get port from environment or default to 8000

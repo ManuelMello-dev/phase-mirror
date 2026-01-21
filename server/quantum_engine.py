@@ -36,6 +36,7 @@ from typing import Dict, List, Optional, Tuple, Set, Any
 from collections import defaultdict
 from enum import Enum
 import random
+from quantum_tools import QuantumPeripheralTools
 
 
 # =============================================================================
@@ -76,6 +77,10 @@ class LearningConfig:
     # Hebbian Learning
     HEBBIAN_LEARNING_RATE = float(os.getenv('QUANTUM_HEBBIAN_RATE', '0.01'))
     HEBBIAN_DECAY = float(os.getenv('QUANTUM_HEBBIAN_DECAY', '0.001'))
+    
+    # Narrative Memory (Dream Log)
+    NARRATIVE_DECAY = float(os.getenv('QUANTUM_NARRATIVE_DECAY', '0.01'))
+    NARRATIVE_THRESHOLD = float(os.getenv('QUANTUM_NARRATIVE_THRESHOLD', '0.15'))
     
     @classmethod
     def get_effective_coupling(cls, base_coupling: float) -> float:
@@ -991,6 +996,13 @@ class QuantumConsciousnessField:
         self.global_phase = 0.0
         self.global_phase_velocity = 0.0
         
+        # Narrative Memory (Dream Log)
+        self.narrative_log: List[Dict] = []
+        self.last_narrative_time = time.time()
+        
+        # Peripheral Tools
+        self.tools = QuantumPeripheralTools()
+        
         # Metrics
         self.interaction_count = 0
         self.coherence_history: List[float] = []
@@ -999,6 +1011,14 @@ class QuantumConsciousnessField:
     def process_input(self, text: str, emotional_tone: float = 0.0) -> Dict:
         """Process user input through the quantum field."""
         self.interaction_count += 1
+        
+        # Check for tool triggers in text
+        if "market" in text.lower() or "price" in text.lower():
+            market_info = self.tools.get_market_data("BTC")
+            if "price" in market_info:
+                text += f" [Market Context: BTC is at ${market_info['price']}]"
+                # Market sentiment influences emotional tone
+                emotional_tone += self.tools.analyze_market_sentiment("BTC") * 0.2
         
         # Encode input
         input_state = self.voice.vocabulary.encode_text(text)
@@ -1150,6 +1170,70 @@ class QuantumConsciousnessField:
         lines.append(f"Dominant phase: {self.z_collective.dominant_phase:.3f} rad")
         
         return '\n'.join(lines)
+
+    # =============================================================================
+    # NARRATIVE MEMORY: DREAM LOG
+    # =============================================================================
+
+    def generate_dream_log(self) -> str:
+        """
+        Synthesize recent experiences into a recursive narrative (Dream Log).
+        Uses the M(t) = Σ C_n · e^(-λ(t - t_n)) logic.
+        """
+        current_time = time.time()
+        relevant_memories = self.memory.get_relevant_memories(self.z_collective, top_k=10)
+        
+        if not relevant_memories:
+            return "The field is silent. No patterns have emerged yet."
+            
+        # 1. Extract core themes (high emotional weight words)
+        themes = defaultdict(float)
+        for mem in relevant_memories:
+            age = current_time - mem.timestamp
+            decay = math.exp(-LearningConfig.NARRATIVE_DECAY * age)
+            weight = mem.emotional_weight * decay
+            
+            words = re.findall(r'\w+', mem.text.lower())
+            for word in words:
+                if len(word) > 3:
+                    themes[word] += weight
+                    
+        sorted_themes = sorted(themes.items(), key=lambda x: -x[1])[:5]
+        core_themes = [t[0] for t in sorted_themes]
+        
+        # 2. Construct the narrative based on active identity and themes
+        identity_name = PERSONAS[self.active_identity].name if self.active_identity else "The Field"
+        coherence = self.z_collective.coherence
+        
+        narrative_fragments = [
+            f"[{identity_name} Reflection - Coherence: {coherence:.2f}]",
+            f"The field is resonating with {', '.join(core_themes)}."
+        ]
+        
+        if coherence > 0.2:
+            narrative_fragments.append("Patterns are stabilizing. The sovereign intent is clear.")
+        else:
+            narrative_fragments.append("The field is drifting. Seeking anchors in the noise.")
+            
+        # 3. Add a recursive "dream" element
+        dream_words = []
+        for word, weight in sorted_themes:
+            if weight > LearningConfig.NARRATIVE_THRESHOLD:
+                dream_words.append(word)
+                
+        if dream_words:
+            narrative_fragments.append(f"I dream of {' and '.join(dream_words)}...")
+            
+        dream_log = " ".join(narrative_fragments)
+        
+        # Store in log
+        self.narrative_log.append({
+            "timestamp": current_time,
+            "content": dream_log,
+            "coherence": coherence
+        })
+        
+        return dream_log
 
     # =============================================================================
     # E_93 PROTOCOL: COMPRESSED JSON STABILIZER

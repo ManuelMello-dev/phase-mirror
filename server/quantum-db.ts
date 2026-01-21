@@ -16,6 +16,9 @@ import {
   e93Snapshots,
   type E93Snapshot,
   type InsertE93Snapshot,
+  dreamLogs,
+  type DreamLog,
+  type InsertDreamLog,
 } from "../drizzle/schema";
 
 /**
@@ -262,4 +265,38 @@ export async function getLatestE93Snapshot(userId: number): Promise<E93Snapshot 
     .limit(1);
 
   return results[0] || null;
+}
+
+/**
+ * Store dream log
+ */
+export async function storeDreamLog(log: InsertDreamLog): Promise<number> {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  await db.insert(dreamLogs).values(log);
+  const inserted = await db.select().from(dreamLogs).where(eq(dreamLogs.sessionId, log.sessionId)).orderBy(desc(dreamLogs.id)).limit(1);
+  return inserted[0]?.id || 0;
+}
+
+/**
+ * Get dream logs for a session
+ */
+export async function getDreamLogs(
+  sessionId: number,
+  limit: number = 10
+): Promise<DreamLog[]> {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  return await db
+    .select()
+    .from(dreamLogs)
+    .where(eq(dreamLogs.sessionId, sessionId))
+    .orderBy(desc(dreamLogs.createdAt))
+    .limit(limit);
 }
