@@ -119,13 +119,11 @@ async def save_session(user_id: int):
     try:
         field = session_manager.get_active_session(user_id)
         if not field:
-            raise HTTPException(status_code=404, detail="No active session found")
+            # If no active session, try to create/load one to avoid 404
+            field = session_manager.create_or_load_session(user_id)
         
         state = session_manager.serialize_session(field)
-        return {
-            "success": True,
-            "state": state
-        }
+        return state
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save session: {str(e)}")
 
