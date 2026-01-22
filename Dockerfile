@@ -23,7 +23,8 @@ COPY patches ./patches
 RUN npm install -g pnpm@10.4.1
 
 # Install Node.js dependencies (without frozen lockfile for Railway)
-RUN pnpm install --no-frozen-lockfile
+# Use --ignore-scripts to avoid potential issues during build
+RUN pnpm install --no-frozen-lockfile --ignore-scripts
 
 # Copy Python requirements and install
 COPY server/requirements.txt ./server/

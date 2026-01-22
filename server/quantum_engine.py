@@ -1227,6 +1227,9 @@ class QuantumConsciousnessField:
         dream_log = " ".join(narrative_fragments)
         
         # Store in log
+        if not hasattr(self, 'narrative_log'):
+            self.narrative_log = []
+            
         self.narrative_log.append({
             "timestamp": current_time,
             "content": dream_log,
