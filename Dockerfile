@@ -56,8 +56,25 @@ echo ""\n\
 echo "🐍 Starting Quantum API on port 8000..."\n\
 cd /app/server && python3 quantum_api.py &\n\
 PYTHON_PID=$!\n\
-# Wait for Python server\n\
-sleep 3\n\
+\n\
+# Wait for Python server to be healthy\n\
+echo "⏳ Waiting for Quantum API to be healthy..."\n\
+MAX_RETRIES=30\n\
+COUNT=0\n\
+while [ $COUNT -lt $MAX_RETRIES ]; do\n\
+  if curl -s http://localhost:8000/health > /dev/null; then\n\
+    echo "✅ Quantum API is healthy!"\n\
+    break\n\
+  fi\n\
+  echo "..."\n\
+  sleep 2\n\
+  COUNT=$((COUNT + 1))\n\
+done\n\
+\n\
+if [ $COUNT -eq $MAX_RETRIES ]; then\n\
+  echo "❌ Quantum API failed to start in time. Proceeding anyway..."\n\
+fi\n\
+\n\
 # Start Node.js server\n\
 echo \"🟢 Starting Web Server on port 3000...\"\n\
 cd /app && node dist/index.js\n\
