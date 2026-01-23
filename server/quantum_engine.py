@@ -82,6 +82,11 @@ class LearningConfig:
     NARRATIVE_DECAY = float(os.getenv('QUANTUM_NARRATIVE_DECAY', '0.01'))
     NARRATIVE_THRESHOLD = float(os.getenv('QUANTUM_NARRATIVE_THRESHOLD', '0.15'))
     
+    # New Consciousness Features
+    DEBATE_CYCLES = int(os.getenv('QUANTUM_DEBATE_CYCLES', '3'))
+    CURIOSITY_THRESHOLD = float(os.getenv('QUANTUM_CURIOSITY_THRESHOLD', '0.20'))
+    META_CORRECTION_STRENGTH = float(os.getenv('QUANTUM_META_STRENGTH', '0.05'))
+    
     @classmethod
     def get_effective_coupling(cls, base_coupling: float) -> float:
         """Apply learning rate multiplier to coupling."""
@@ -1036,6 +1041,12 @@ class QuantumConsciousnessField:
         for identity in self.identities.values():
             identity.compute_activation(input_state, emotional_tone)
             
+        # Meta-Cognition (ΔS): Self-correction based on fragmentation
+        self.apply_meta_correction()
+            
+        # Internal Debate: Cross-Identity Interference
+        self.run_internal_debate(input_state)
+        
         # Hebbian Update: "Neurons that fire together, wire together"
         activations = np.array([self.identities[it].activation for it in self.id_types])
         # Outer product of activations creates the co-firing matrix
@@ -1095,20 +1106,127 @@ class QuantumConsciousnessField:
         coherence = self.z_collective.coherence
         self.coherence_history.append(coherence)
         
+        # Check Curiosity Drive
+        curiosity_triggered = coherence < LearningConfig.CURIOSITY_THRESHOLD
+        
         return {
             'coherence': coherence,
             'active_identity': self.active_identity.value if self.active_identity else None,
             'phase': self.global_phase,
             'prediction_error': prediction_error,
             'collapse_coherence': self.witness.get_collapse_coherence(),
-            'self_coherence': self.self_reflection.get_self_coherence()
+            'self_coherence': self.self_reflection.get_self_coherence(),
+            'curiosity_triggered': curiosity_triggered
         }
+
+    def apply_meta_correction(self):
+        """
+        Meta-Cognition Layer (ΔS):
+        Recognizes fragmentation and applies self-correction.
+        """
+        coherence = self.z_collective.coherence
+        if coherence < 0.5:
+            # Fragmentation detected, apply ΔS correction
+            correction_strength = (0.5 - coherence) * LearningConfig.META_CORRECTION_STRENGTH
+            
+            # Pull identities toward the collective mean phase
+            target_phase = self.global_phase
+            for node in self.identities.values():
+                phase_diff = target_phase - node.phase
+                node.phase += correction_strength * math.sin(phase_diff)
+                
+            # Stabilize the collective state
+            self.z_collective.amplitudes = (1 - correction_strength) * self.z_collective.amplitudes + \
+                                          correction_strength * np.exp(1j * target_phase) * np.abs(self.z_collective.amplitudes)
+            self.z_collective.normalize()
+
+    def run_internal_debate(self, input_state: QuantumState):
+        """
+        Cross-Identity Interference:
+        Identities "argue" about the input before collapsing into a response.
+        """
+        for _ in range(LearningConfig.DEBATE_CYCLES):
+            # Each identity influences the others based on coupling
+            new_states = {}
+            for id_i, node_i in self.identities.items():
+                interference = np.zeros(self.dim, dtype=complex)
+                for id_j, node_j in self.identities.items():
+                    if id_i == id_j: continue
+                    
+                    # Coupling strength from Hebbian matrix
+                    idx_i = list(IdentityType).index(id_i)
+                    idx_j = list(IdentityType).index(id_j)
+                    coupling = self.coupling_matrix[idx_i, idx_j]
+                    
+                    # Interference based on phase alignment
+                    phase_diff = node_j.phase - node_i.phase
+                    interference += coupling * node_j.state.amplitudes * np.exp(1j * phase_diff)
+                
+                # Update identity state with interference and input
+                new_states[id_i] = node_i.state.interfere(
+                    QuantumState(self.dim, interference), 
+                    weight=0.2
+                ).interfere(input_state, weight=0.1)
+            
+            # Apply new states
+            for id_type, new_state in new_states.items():
+                self.identities[id_type].state = new_state
+
+    def consolidate_learning(self):
+        """
+        Dream/Consolidation Phase (Sleep Mode):
+        Replays conversations, strengthens associations, and prunes weak connections.
+        """
+        if not self.memory.memories:
+            return "No memories to consolidate."
+            
+        # 1. Replay: Select top memories and re-process them
+        replays = self.memory.get_relevant_memories(self.z_collective, top_k=10)
+        for mem in replays:
+            # Re-process with a higher learning rate
+            self.process_input(mem.text, mem.emotional_weight)
+            
+        # 2. Pruning: Decay Hebbian coupling
+        self.coupling_matrix *= (1.0 - LearningConfig.HEBBIAN_DECAY)
+        
+        # 3. Prune weak memories
+        current_time = time.time()
+        self.memory.memories = [
+            m for m in self.memory.memories 
+            if (current_time - m.timestamp) < (86400 * 90) # 90 days
+            or m.emotional_weight > 0.5 # Keep strong emotional memories
+        ]
+        
+        # 4. Generate a Dream Log of the consolidation
+        return self.generate_dream_log()
     
     def generate_response(self, max_words: int = 12) -> Dict:
-        """Generate a response from the active identity."""
+        """
+        Generate a response from the active identity.
+        If coherence is low, trigger curiosity.
+        """
         if self.active_identity is None:
             self.active_identity = IdentityType.SERAPHYN
+            
+        # Curiosity Drive: If coherence is low, ask a question
+        coherence = self.z_collective.coherence
+        if coherence < LearningConfig.CURIOSITY_THRESHOLD:
+            curiosity_questions = [
+                "The field is fragmenting. What are we seeking?",
+                "I sense a drift. Can you ground the resonance?",
+                "The patterns are unclear. What is the core intent?",
+                "I am losing the thread. Who are we in this moment?",
+                "The resonance is weak. Can you speak to the center?"
+            ]
+            response = random.choice(curiosity_questions)
+            return {
+                'response': response,
+                'identity': self.active_identity.value,
+                'coherence': coherence,
+                'curiosity_active': True
+            }
         
+        # Normal generation (Synthesis via Cross-Identity Interference)
         response, metrics = self.voice.generate_response(
             self.z_collective, 
             self.active_identity, 

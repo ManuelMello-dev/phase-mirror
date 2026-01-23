@@ -242,8 +242,45 @@ export const quantumRouter = router({
         }
       }
       
-      return result;
+      return {
+        ...result,
+        curiosityTriggered: result.curiosity_triggered
+      };
     }),
+
+  /**
+   * Dream/Consolidation Phase (Sleep Mode)
+   */
+  consolidate: publicProcedure.mutation(async ({ ctx }) => {
+    const userId = ctx.user?.id ?? 1;
+    const session = await getOrCreateQuantumSession(userId);
+    
+    try {
+      const response = await fetch(`${QUANTUM_API_URL}/consolidate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId }),
+      });
+      
+      if (!response.ok) throw new Error("Failed to consolidate learning");
+      
+      const data = await response.json();
+      
+      if (data.dream_log) {
+        await storeDreamLog({
+          userId,
+          sessionId: session.id,
+          content: data.dream_log,
+          coherence: data.coherence || session.coherence,
+        });
+      }
+      
+      return data;
+    } catch (error) {
+      console.error("[Consolidation] Error:", error);
+      throw new Error("Failed to consolidate learning");
+    }
+  }),
 
   /**
    * E_93 Protocol: Re-prime the field from the latest stabilizer snapshot

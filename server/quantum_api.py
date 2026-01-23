@@ -294,6 +294,25 @@ async def generate_dream(request: DreamLogRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate dream log: {str(e)}")
 
+@app.post("/consolidate")
+async def consolidate(request: DreamLogRequest):
+    """
+    Trigger the Dream/Consolidation (Sleep Mode) phase for the user's session.
+    """
+    try:
+        field = session_manager.get_active_session(request.user_id)
+        if not field:
+            raise HTTPException(status_code=404, detail="No active session found")
+        
+        dream_log = field.consolidate_learning()
+        return {
+            "status": "consolidated",
+            "user_id": request.user_id,
+            "dream_log": dream_log
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to consolidate learning: {str(e)}")
+
 if __name__ == "__main__":
     # Get port from environment or default to 8000
     port = int(os.getenv("QUANTUM_API_PORT", "8000"))
