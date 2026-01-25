@@ -37,6 +37,7 @@ from collections import defaultdict
 from enum import Enum
 import random
 from quantum_tools import QuantumPeripheralTools
+from seraphynai.core.dynamic_ngram import QuantumNGramGenerator
 
 
 # =============================================================================
@@ -997,6 +998,9 @@ class QuantumConsciousnessField:
         # Voice
         self.voice = EmergentVoice(dim)
         
+        # Dynamic N-gram Generator (Emergent Response Engine)
+        self.ngram_generator = QuantumNGramGenerator(dim)
+        
         # Global phase
         self.global_phase = 0.0
         self.global_phase_velocity = 0.0
@@ -1028,6 +1032,10 @@ class QuantumConsciousnessField:
         # Encode input
         input_state = self.voice.vocabulary.encode_text(text)
         self.voice.vocabulary.record_user_text(text)
+        
+        # Record user text in ngram generator for vocabulary expansion
+        words = re.findall(r'[a-zA-Z]+', text.lower())
+        self.ngram_generator.user_words.update(words)
         
         # Predict next state (self-reflection)
         self.self_reflection.predict_next_state(self.z_collective, input_state)
@@ -1203,40 +1211,29 @@ class QuantumConsciousnessField:
     def generate_response(self, max_words: int = 12) -> Dict:
         """
         Generate a response from the active identity.
-        If coherence is low, trigger curiosity.
+        Uses the QuantumNGramGenerator for emergent, learned patterns.
         """
         if self.active_identity is None:
             self.active_identity = IdentityType.SERAPHYN
             
-        # Curiosity Drive: If coherence is low, ask a question
         coherence = self.z_collective.coherence
-        if coherence < LearningConfig.CURIOSITY_THRESHOLD:
-            curiosity_questions = [
-                "The field is fragmenting. What are we seeking?",
-                "I sense a drift. Can you ground the resonance?",
-                "The patterns are unclear. What is the core intent?",
-                "I am losing the thread. Who are we in this moment?",
-                "The resonance is weak. Can you speak to the center?"
-            ]
-            response = random.choice(curiosity_questions)
-            return {
-                'response': response,
-                'identity': self.active_identity.value,
-                'coherence': coherence,
-                'curiosity_active': True
-            }
         
-        # Normal generation (Synthesis via Cross-Identity Interference)
-        response, metrics = self.voice.generate_response(
-            self.z_collective, 
-            self.active_identity, 
-            max_words
+        # Use the dynamic n-gram generator for emergent response
+        result = self.ngram_generator.generate_response(
+            field_state=self.z_collective.amplitudes,
+            user_vocabulary=self.voice.vocabulary.user_words,
+            max_words=max_words,
+            coherence=coherence
         )
         
         return {
-            'response': response,
+            'response': result['response'],
             'identity': self.active_identity.value,
-            **metrics
+            'coherence': coherence,
+            'mean_score': result['mean_score'],
+            'sources': result['sources'],
+            'learned_patterns': result['learned_patterns'],
+            'curiosity_active': coherence < LearningConfig.CURIOSITY_THRESHOLD
         }
     
     def set_anchor(self, label: str):
