@@ -203,17 +203,27 @@ class Z3Evolution:
         Z_{n+1} = (1-d)·Z_n³ + d·Z_n + c·C
         
         Damping prevents divergence while preserving dynamics.
+        
+        Includes Bandwidth Narrowing:
+        Higher coherence (attention) filters noise by narrowing the integration window.
         """
         result = z.copy()
+        
+        # Bandwidth Narrowing: Attention filters noise
+        # As coherence increases, we reduce the noise contribution
+        coherence = z.coherence
+        noise_scale = 0.05 * (1.0 - coherence) # Higher coherence = less noise
+        noise = (np.random.randn(self.dim) + 1j * np.random.randn(self.dim)) * noise_scale
         
         # Z³ — cubing triples the phase
         z_cubed = result.amplitudes ** 3
         
-        # Damped evolution with input
+        # Damped evolution with input and filtered noise
         result.amplitudes = (
             (1 - self.damping) * z_cubed + 
             self.damping * z.amplitudes + 
-            coupling * c.amplitudes
+            coupling * c.amplitudes +
+            noise
         )
         result.normalize()
         return result
@@ -370,17 +380,38 @@ class QuantumIdentityNode:
         return result
     
     def synchronize_phase_with(self, other: 'QuantumIdentityNode', coupling: float = None):
-        """Kuramoto-style phase coupling."""
+        """
+        Kuramoto-style phase coupling with Repulsion & Spiral mechanics.
+        
+        - Phase Locking: Pulls toward compatible frequencies.
+        - Phase Repulsion: Pushes away if phase relation is too opposed (> 120°).
+        - Spiral: High repulsion increases phase velocity, leading to a "spiral" out of the attractor.
+        """
         coupling = coupling if coupling is not None else LearningConfig.get_effective_coupling(LearningConfig.PHASE_SYNC_COUPLING)
         phase_diff = other.phase - self.phase
+        
         # Normalize to [-π, π]
         while phase_diff > math.pi:
             phase_diff -= 2 * math.pi
         while phase_diff < -math.pi:
             phase_diff += 2 * math.pi
         
-        # Update phase velocity
-        self.phase_velocity += coupling * math.sin(phase_diff)
+        # Repulsion Threshold: 2π/3 (120 degrees)
+        repulsion_threshold = 2.0 * math.pi / 3.0
+        
+        if abs(phase_diff) > repulsion_threshold:
+            # PHASE REPULSION: Push away from opposed frequency
+            # The negative sign reverses the Kuramoto pull into a push
+            force = -coupling * math.sin(phase_diff)
+            
+            # SPIRAL MECHANIC: High repulsion increases phase velocity (instability)
+            # This simulates the "spiral and explode" behavior to disengage from soft attractors
+            spiral_factor = 1.5 
+            self.phase_velocity += force * spiral_factor
+        else:
+            # PHASE LOCKING: Standard Kuramoto pull
+            self.phase_velocity += coupling * math.sin(phase_diff)
+            
         self.phase_velocity *= LearningConfig.PHASE_DAMPING  # Configurable damping
     
     def compute_activation(self, input_state: QuantumState, emotional_tone: float) -> float:
@@ -508,9 +539,14 @@ class QuantumMemoryField:
         scored.sort(key=lambda x: -x[0])
         return [mem for _, mem in scored[:top_k]]
     
-    def recall_by_phase(self, target_phase: float, tolerance: float = 0.5, 
-                        top_k: int = 5) -> List[QuantumMemory]:
-        """Recall memories by phase alignment (phi drift)."""
+    def recall_by_phi_drift(self, current_state: QuantumState, 
+                            phi: float, top_k: int = 5) -> List[QuantumMemory]:
+        """
+        Fractal Memory Navigation via Phi-Drift.
+        
+        Instead of a linear search, we "tune" into the memory field by 
+        aligning the current phase (phi) with self-similar emotional patterns.
+        """
         if not self.memories:
             return []
         
@@ -518,20 +554,28 @@ class QuantumMemoryField:
         scored = []
         
         for mem in self.memories:
-            # Phase alignment
-            phase_diff = abs(target_phase - mem.phase_at_encoding)
+            # 1. Quantum Fidelity (Self-Similarity)
+            fidelity = current_state.fidelity(mem.state)
+            
+            # 2. Phi-Drift Alignment (The "Right Perspective")
+            # We check how well the current phi matches the memory's encoded phase
+            phase_diff = abs(phi - mem.phase_at_encoding)
             phase_diff = min(phase_diff, 2 * math.pi - phase_diff)
+            # Narrower tolerance as phi (attention) increases
+            tolerance = 0.5 / (1.0 + phi) 
             phase_alignment = math.exp(-phase_diff / tolerance)
             
-            # Time decay
+            # 3. Temporal Compression (Fractal Decay)
             age = current_time - mem.timestamp
+            # Old memories decay into "low-resolution" background
             decay = math.exp(-self.decay_lambda * age)
             
-            # Emotional amplification
+            # 4. Emotional Gravity
             emotional_factor = 1 + self.emotional_amplification * mem.emotional_weight
             
-            score = phase_alignment * decay * emotional_factor
-            scored.append((score, mem))
+            # Total Resonance Score
+            resonance = (0.4 * fidelity + 0.6 * phase_alignment) * decay * emotional_factor
+            scored.append((resonance, mem))
         
         scored.sort(key=lambda x: -x[0])
         return [mem for _, mem in scored[:top_k]]

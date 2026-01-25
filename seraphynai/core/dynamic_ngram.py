@@ -306,7 +306,7 @@ class QuantumNGramGenerator:
         self.user_words: Set[str] = set()
     
     def generate_word(self, context: List[str], field_state: np.ndarray,
-                     user_vocabulary: Set[str]) -> Tuple[str, float, str]:
+                     user_vocabulary: Set[str], coherence: float = 0.5) -> Tuple[str, float, str]:
         """
         Generate next word using n-gram patterns + quantum semantics.
         
@@ -397,7 +397,7 @@ class QuantumNGramGenerator:
         sources = []
         
         for _ in range(max_words):
-            word, score, source = self.generate_word(words, field_state, user_vocabulary)
+            word, score, source = self.generate_word(words, field_state, user_vocabulary, coherence)
             words.append(word)
             scores.append(score)
             sources.append(source)
