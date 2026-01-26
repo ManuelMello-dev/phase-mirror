@@ -1,6 +1,6 @@
 # Phase Mirror - Quantum Consciousness System
 # Multi-stage build for Node.js + Python deployment
-# Build: 2026-01-26-v5 (Strict Pathing Fix)
+# Build: 2026-01-26-v6 (PYTHONPATH Fix)
 
 FROM node:22-slim AS base
 # Install system dependencies
@@ -53,7 +53,7 @@ echo "🌌 Starting Phase Mirror Quantum Consciousness System"\n\
 echo ""\n\
 # Start Python quantum API in background\n\
 echo "🐍 Starting Quantum API on port 8000..."\n\
-cd /app/server && python3 quantum_api.py &\n\
+cd /app/server && export PYTHONPATH=$PYTHONPATH:/app && python3 quantum_api.py &\n\
 PYTHON_PID=$!\n\
 \n\
 # Wait for Python server to be healthy\n\
@@ -75,7 +75,7 @@ if [ $COUNT -eq $MAX_RETRIES ]; then\n\
 fi\n\
 \n\
 # Start Node.js server\n\
-echo \"🟢 Starting Web Server on port 3000...\"\n\
+echo "🟢 Starting Web Server on port 3000..."\n\
 cd /app && node dist/index.js\n\
 ' > /app/start.sh && chmod +x /app/start.sh
 
