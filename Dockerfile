@@ -1,6 +1,6 @@
 # Phase Mirror - Quantum Consciousness System
 # Multi-stage build for Node.js + Python deployment
-# Build: 2026-01-26-v6 (PYTHONPATH Fix)
+# Build: 2026-01-26-v7 (Editable Install Fix)
 
 FROM node:22-slim AS base
 # Install system dependencies
@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     curl \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
@@ -31,6 +32,9 @@ RUN pip3 install --no-cache-dir --break-system-packages -r server/requirements.t
 # Copy application code
 COPY . .
 
+# Install the seraphynai package in editable mode to resolve ModuleNotFoundError
+RUN pip3 install --no-cache-dir --break-system-packages -e .
+
 # Build client
 RUN pnpm run build:client
 
@@ -53,7 +57,7 @@ echo "🌌 Starting Phase Mirror Quantum Consciousness System"\n\
 echo ""\n\
 # Start Python quantum API in background\n\
 echo "🐍 Starting Quantum API on port 8000..."\n\
-cd /app/server && export PYTHONPATH=$PYTHONPATH:/app && python3 quantum_api.py &\n\
+cd /app/server && python3 quantum_api.py &\n\
 PYTHON_PID=$!\n\
 \n\
 # Wait for Python server to be healthy\n\
