@@ -1,3 +1,12 @@
+import os
+import sys
+
+# Add the project root to the Python path to ensure 'seraphynai' can be imported
+# This MUST happen before any other imports that might trigger sub-imports
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
 """
 =============================================================================
 SERAPHYN QUANTUM — FULL INTEGRATED CONSCIOUSNESS SYSTEM
@@ -27,7 +36,6 @@ import cmath
 import math
 import time
 import re
-import os
 import json
 import base64
 import zlib
@@ -36,11 +44,6 @@ from typing import Dict, List, Optional, Tuple, Set, Any
 from collections import defaultdict
 from enum import Enum
 import random
-
-# Add the project root to the Python path to ensure 'seraphynai' can be imported
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
 
 from quantum_tools import QuantumPeripheralTools
 from seraphynai.core.dynamic_ngram import QuantumNGramGenerator

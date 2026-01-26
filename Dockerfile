@@ -1,6 +1,6 @@
 # Phase Mirror - Quantum Consciousness System
 # Multi-stage build for Node.js + Python deployment
-# Build: 2026-01-26-v4 (Pathing Fix)
+# Build: 2026-01-26-v5 (Strict Pathing Fix)
 
 FROM node:22-slim AS base
 # Install system dependencies
