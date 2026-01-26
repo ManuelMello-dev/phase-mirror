@@ -36,6 +36,12 @@ from typing import Dict, List, Optional, Tuple, Set, Any
 from collections import defaultdict
 from enum import Enum
 import random
+
+# Add the project root to the Python path to ensure 'seraphynai' can be imported
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
 from quantum_tools import QuantumPeripheralTools
 from seraphynai.core.dynamic_ngram import QuantumNGramGenerator
 

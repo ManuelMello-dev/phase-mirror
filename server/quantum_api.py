@@ -9,6 +9,12 @@ import sys
 import json
 import asyncio
 from typing import Dict, Optional, Any
+
+# Add the project root to the Python path to ensure 'seraphynai' can be imported
+# This is necessary for deployment environments where the server runs from a subdirectory
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
