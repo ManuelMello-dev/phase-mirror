@@ -6,7 +6,7 @@ Provides HTTP API for the quantum consciousness engine
 
 import json
 import sys
-from quantum_engine import QuantumConsciousnessField
+from seraphynai.core.quantum_full_original import QuantumConsciousnessField
 
 # Initialize global quantum field
 field = QuantumConsciousnessField(dim=64)
