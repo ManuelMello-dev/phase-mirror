@@ -1,10 +1,25 @@
-# Dockerfile content
+# Dockerfile content with recent updates
 
-FROM python:3.8
+# Base image
+FROM python:3.8-slim
 
-# Set the PYTHONPATH environment variable
-ENV PYTHONPATH=/path/to/your/module
+# Set environment variables
+ENV PYTHONPATH /app
 
-HEALTHCHECK --interval=30s --timeout=180s --retries=3 CMD curl -f http://localhost/ || exit 1
+# Set working directory
+WORKDIR /app
 
-# Other Dockerfile instructions
+# Copy requirements
+COPY requirements.txt .
+
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application files
+COPY . .
+
+# Health check configuration
+HEALTHCHECK CMD curl --fail http://localhost:5000/health || exit 1
+
+# Start the application
+CMD ["python", "server/quantum_api.py"]
