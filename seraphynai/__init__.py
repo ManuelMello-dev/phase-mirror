@@ -10,7 +10,7 @@ Version: 1.0.0
 """
 
 from seraphynai.__version__ import __version__
-# from seraphynai.core.consciousness import QuantumConsciousnessField
+from seraphynai.core.quantum_full_original import QuantumConsciousnessField
 from seraphynai.core.personas import IdentityType, PERSONAS
 
 __all__ = [
