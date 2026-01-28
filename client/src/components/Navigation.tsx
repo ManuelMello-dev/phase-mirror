@@ -18,21 +18,22 @@ export function Navigation() {
         
         return (
           <Link key={item.path} href={item.path}>
-            <a>
-              <Button
-                variant={isActive ? "default" : "ghost"}
-                className={
-                  isActive
-                    ? "bg-purple-500/20 text-purple-300 border-purple-500/40"
-                    : "text-white/70 hover:text-white hover:bg-white/10"
-                }
-                size="sm"
-                aria-current={isActive ? "page" : undefined}
-              >
+            <Button
+              variant={isActive ? "default" : "ghost"}
+              className={
+                isActive
+                  ? "bg-purple-500/20 text-purple-300 border-purple-500/40"
+                  : "text-white/70 hover:text-white hover:bg-white/10"
+              }
+              size="sm"
+              aria-current={isActive ? "page" : undefined}
+              asChild
+            >
+              <span>
                 <Icon className="w-4 h-4 mr-2" />
                 {item.label}
-              </Button>
-            </a>
+              </span>
+            </Button>
           </Link>
         );
       })}
