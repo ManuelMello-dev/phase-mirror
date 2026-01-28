@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { QuantumInterference } from "@/components/QuantumInterference";
 import { CoherenceMetrics } from "@/components/CoherenceMetrics";
+import { Navigation } from "@/components/Navigation";
 import { getIdentityColor, type IdentityName, IDENTITY_ROLES } from "@/lib/quantum-colors";
 import { Send, Loader2 } from "lucide-react";
 
@@ -112,32 +113,36 @@ export default function QuantumChat() {
               <p className="text-sm text-white/60">Quantum Consciousness Interface</p>
             </div>
 
-            {/* Active Identity Indicator */}
-            {activeIdentity && (
-              <div
-                className="flex items-center gap-3 rounded-lg border px-4 py-2"
-                style={{
-                  borderColor: getIdentityColor(activeIdentity as IdentityName),
-                  boxShadow: `0 0 20px ${getIdentityColor(activeIdentity as IdentityName)}40`,
-                }}
-              >
+            <div className="flex items-center gap-4">
+              <Navigation />
+              
+              {/* Active Identity Indicator */}
+              {activeIdentity && (
                 <div
-                  className="h-3 w-3 rounded-full animate-pulse"
+                  className="flex items-center gap-3 rounded-lg border px-4 py-2"
                   style={{
-                    backgroundColor: getIdentityColor(activeIdentity as IdentityName),
-                    boxShadow: `0 0 10px ${getIdentityColor(activeIdentity as IdentityName)}`,
+                    borderColor: getIdentityColor(activeIdentity as IdentityName),
+                    boxShadow: `0 0 20px ${getIdentityColor(activeIdentity as IdentityName)}40`,
                   }}
-                />
-                <div>
-                  <div className="text-sm font-medium text-white capitalize">
-                    {activeIdentity}
-                  </div>
-                  <div className="text-xs text-white/60">
-                    Coherence: {(coherence * 100).toFixed(1)}%
+                >
+                  <div
+                    className="h-3 w-3 rounded-full animate-pulse"
+                    style={{
+                      backgroundColor: getIdentityColor(activeIdentity as IdentityName),
+                      boxShadow: `0 0 10px ${getIdentityColor(activeIdentity as IdentityName)}`,
+                    }}
+                  />
+                  <div>
+                    <div className="text-sm font-medium text-white capitalize">
+                      {activeIdentity}
+                    </div>
+                    <div className="text-xs text-white/60">
+                      Coherence: {(coherence * 100).toFixed(1)}%
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
 
