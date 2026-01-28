@@ -11,25 +11,28 @@ export function Navigation() {
   ];
 
   return (
-    <nav className="flex gap-2">
+    <nav className="flex gap-2" aria-label="Main navigation">
       {navItems.map((item) => {
         const Icon = item.icon;
         const isActive = location === item.path;
         
         return (
           <Link key={item.path} href={item.path}>
-            <Button
-              variant={isActive ? "default" : "ghost"}
-              className={
-                isActive
-                  ? "bg-purple-500/20 text-purple-300 border-purple-500/40"
-                  : "text-white/70 hover:text-white hover:bg-white/10"
-              }
-              size="sm"
-            >
-              <Icon className="w-4 h-4 mr-2" />
-              {item.label}
-            </Button>
+            <a>
+              <Button
+                variant={isActive ? "default" : "ghost"}
+                className={
+                  isActive
+                    ? "bg-purple-500/20 text-purple-300 border-purple-500/40"
+                    : "text-white/70 hover:text-white hover:bg-white/10"
+                }
+                size="sm"
+                aria-current={isActive ? "page" : undefined}
+              >
+                <Icon className="w-4 h-4 mr-2" />
+                {item.label}
+              </Button>
+            </a>
           </Link>
         );
       })}

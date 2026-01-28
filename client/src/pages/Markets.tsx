@@ -158,12 +158,14 @@ function MarketCard({ market }: { market: Market }) {
             <Button 
               className="bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/40"
               variant="outline"
+              aria-label={`Buy YES for: ${market.question}`}
             >
               Buy YES
             </Button>
             <Button 
               className="bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/40"
               variant="outline"
+              aria-label={`Buy NO for: ${market.question}`}
             >
               Buy NO
             </Button>
@@ -201,12 +203,14 @@ export default function Markets() {
       </div>
 
       {/* Category Filter */}
-      <div className="border-b border-white/10 bg-black/40 backdrop-blur-sm sticky top-[88px] z-10">
+      <div className="border-b border-white/10 bg-black/40 backdrop-blur-sm sticky top-[var(--header-height,88px)] z-10">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex gap-2 overflow-x-auto pb-2">
+          <div className="flex gap-2 overflow-x-auto pb-2" role="tablist" aria-label="Market categories">
             {categories.map((category) => (
               <Button
                 key={category}
+                role="tab"
+                aria-selected={selectedCategory === category}
                 variant={selectedCategory === category ? "default" : "outline"}
                 className={
                   selectedCategory === category
