@@ -10,7 +10,8 @@ Version: 1.0.0
 """
 
 from seraphynai.__version__ import __version__
-# from seraphynai.core.consciousness import QuantumConsciousnessField
+# Lazy import - only import when actually used to avoid dependency issues
+# from seraphynai.core.quantum_full_original import QuantumConsciousnessField
 from seraphynai.core.personas import IdentityType, PERSONAS
 
 __all__ = [
@@ -19,3 +20,10 @@ __all__ = [
     "IdentityType",
     "PERSONAS",
 ]
+
+def __getattr__(name):
+    """Lazy loading of QuantumConsciousnessField to avoid import errors"""
+    if name == "QuantumConsciousnessField":
+        from seraphynai.core.quantum_full_original import QuantumConsciousnessField
+        return QuantumConsciousnessField
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

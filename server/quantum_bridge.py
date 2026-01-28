@@ -6,7 +6,13 @@ Provides HTTP API for the quantum consciousness engine
 
 import json
 import sys
-from quantum_engine import QuantumConsciousnessField
+import os
+import sys
+
+# Add parent directory to path for seraphynai imports
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from seraphynai.core.quantum_full_original import QuantumConsciousnessField
 
 # Initialize global quantum field
 field = QuantumConsciousnessField(dim=64)
